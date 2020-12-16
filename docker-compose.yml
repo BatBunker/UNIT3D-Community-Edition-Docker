@@ -23,13 +23,10 @@ services:
       - caddy_config:/config
       - public:/app/public:ro
       - public_files:/app/public/files:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile
     ports:
       - "80:80"
       - "443:443"
-    depends_on:
-      - mariadb
-      - app
-      - queue
     networks:
       - unit3d
     logging:
@@ -147,4 +144,3 @@ volumes:
 
 networks:
   unit3d:
-    driver: bridge

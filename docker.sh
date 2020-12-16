@@ -18,8 +18,8 @@ run_install() {
   if ! test -f ./Caddyfile; then
     run_config
   fi
-  docker-compose -f ${compose_file} -p ${stack_name} build
-  docker-compose -f ${compose_file} -p ${stack_name} up -d mariadb
+  docker-compose -f ${compose_file} -p ${stack_name} --verbose build
+  docker-compose -f ${compose_file} -p ${stack_name} --verbose up -d mariadb
   echo "Please wait while the database initializes, could take over a minute on slower hardware"
   ret_val=-1
   until [ $ret_val -eq 0 ]
@@ -68,12 +68,7 @@ run_update() {
 run_clean () {
   rm -rf ./Caddyfile \
     ./env \
-    ${src_dir}/public/css \
-    ${src_dir}/public/fonts \
-    ${src_dir}/public/js \
-    ${src_dir}/public/mix-manifest.json \
-    ${src_dir}/public/mix-sri.json \
-    ${src_dir}/bootstrap/cache/*.php
+    ${src_dir}
 }
 
 run_prune() {
@@ -81,8 +76,8 @@ run_prune() {
 }
 
 run_up() {
-  docker-compose -f ${compose_file} -p ${stack_name} build
-  docker-compose -f ${compose_file} -p ${stack_name} up --remove-orphans -d
+  docker-compose -f ${compose_file} -p ${stack_name} --verbose build
+  docker-compose -f ${compose_file} -p ${stack_name} --verbose up --remove-orphans -d
 }
 
 run_usage() {
@@ -97,7 +92,7 @@ case "$1" in
     ;;
   build)
     shift
-    docker-compose -f ${compose_file} -p ${stack_name} build "$@"
+    docker-compose -f ${compose_file} -p ${stack_name} --verbose build "$@"
     ;;
   clean)
     run_clean

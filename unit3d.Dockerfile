@@ -1,4 +1,4 @@
-FROM php:7-fpm
+FROM php:7.4-fpm
 ENV TZ America/Edmonton
 RUN apt-get update && apt-get install -y \
         libzip-dev \
@@ -33,5 +33,4 @@ COPY ./src/database/ database/
 COPY ./src/config/ config/
 COPY ./src/routes/ routes/
 COPY ./src/resources/ resources/
-COPY ./env .env
 RUN ./composer-setup.sh
