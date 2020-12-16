@@ -1,0 +1,150 @@
+version: '2.4'
+
+services:
+  frontend:
+    restart: "no"
+    build:
+      dockerfile: frontend.Dockerfile
+      context: "."
+    volumes:
+      - public:/build/static
+      - node_modules:/build/node_modules
+    networks:
+      - unit3d
+
+  # Caddy based setup
+  http:
+    build:
+      dockerfile: caddy.Dockerfile
+      context: "."
+    restart: always
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - public:/app/public:ro
+      - public_files:/app/public/files:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - mariadb
+      - app
+      - queue
+    networks:
+      - unit3d
+    logging:
+      options:
+        mode: non-blocking
+        max-size: 50M
+        max-file: "5"
+
+  redis:
+    image: redis:6-alpine
+    restart: always
+    entrypoint: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - unit3d
+
+  mariadb:
+    build:
+      dockerfile: mariadb.Dockerfile
+      context: "."
+    restart: always
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: unit3d
+    networks:
+      - unit3d
+
+  echo-server:
+    build:
+      dockerfile: echo-server.Dockerfile
+      context: "."
+    restart: always
+    ports:
+      - "8443:8443"
+    depends_on:
+      - redis
+    networks:
+      - unit3d
+
+  cron:
+    image: unit3d_app:latest
+    restart: always
+    depends_on:
+      - mariadb
+      - redis
+    volumes:
+      - composer_cache:/app/vendor
+      - storage:/app/storage
+      - public:/app/public
+      - public_files:/app/public/files
+    networks:
+      - unit3d
+    entrypoint: "cron"
+    command: "-f"
+
+  queue:
+    image: unit3d_app:latest
+    restart: always
+    depends_on:
+      - mariadb
+      - app
+      - redis
+    volumes:
+      - composer_cache:/app/vendor
+      - storage:/app/storage
+      - public:/app/public
+      - public_files:/app/public/files
+    networks:
+      - unit3d
+    entrypoint: "php"
+    command: "artisan queue:work"
+
+  app:
+    build:
+      dockerfile: unit3d.Dockerfile
+      context: "."
+    restart: always
+    tty: true
+    depends_on:
+      - mariadb
+      - redis
+      - echo-server
+    volumes:
+      - composer_cache:/app/vendor
+      - storage:/app/storage
+      - public:/app/public
+      - public_files:/app/public/files
+    networks:
+      - unit3d
+    command: ./docker_setup.sh
+
+volumes:
+  # Caddy SSL certs
+  caddy_data:
+  # Caddy config data
+  caddy_config:
+  # Mariadb database
+  db_data:
+  # Redis persistence data
+  redis_data:
+  # Laravel app storage
+  storage:
+  # Generated files from /files
+  public_files:
+  # Static files serves over HTTP
+  public:
+  # PHP Library cache
+  composer_cache:
+  # Portainer persistent storage
+  portainer_data:
+  # JS Library cache
+  node_modules:
+
+networks:
+  unit3d:
+    driver: bridge
